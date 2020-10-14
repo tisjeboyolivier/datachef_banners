@@ -13,13 +13,17 @@ def read_banner_csv(table_name, time_quarter):
 def insert_into_dynamo(pandas_table, dynamo_table):
     record_list = json.loads(pandas_table.to_json(orient="records"))
 
-    for record in record_list:
-        record["clk_id"] = Decimal(str(record["clk_id"]))
-        record["cam_id"] = Decimal(str(record["cam_id"]))
-        record["tq"] = Decimal(str(record["tq"]))
-        record["con_id"] = Decimal(str(record["con_id"]))
-        print(record)
-        # dynamo_table.put_item(Item=record) # TODO: batch_write_item instead
+    with dynamo_table.batch_writer() as batch:
+        for idx, record in enumerate(record_list):
+            record["ban_id"] = Decimal(str(record["ban_id"]))
+            record["cam_id"] = Decimal(str(record["cam_id"]))
+            record["tq"] = Decimal(str(record["tq"]))
+            record["con_id"] = Decimal(str(record["con_id"]))
+            # print(record)
+            batch.put_item(Item=record)
+            if idx % 1000 == 0:
+                print(str(idx)+"/179000")
+                print("--- %s seconds ---" % (time.time() - start_time))
 
 start_time = time.time()
 pd.set_option('display.expand_frame_repr', False)
@@ -41,17 +45,21 @@ clean_conversions = conversions.drop_duplicates().reset_index(drop=True)
 
 mother_df = clean_clicks.merge(clean_conversions, on="click_id", how="left", validate="one_to_one")
 mother_df = mother_df.fillna(0)
-mother_df["rev_ban"] = mother_df["revenue"].astype(str) + "_" + mother_df["banner_id"].astype(str)
+mother_df["rev_clk"] = mother_df["revenue"].astype(str) + "_" + mother_df["click_id"].astype(str) # Artificial sort key
 
 # Drop redundant columns & rename columns for DynamoDB to save costs
-mother_df = mother_df.drop(columns=["time_quarter_y", "revenue", "banner_id"])
+mother_df = mother_df.drop(columns=["time_quarter_y", "revenue", "click_id"])
 mother_df = mother_df.rename(columns={'time_quarter_x':'time_quarter'})
-mother_df.columns = ["clk_id", "cam_id", "tq", "con_id", "rev_ban"]
-
-print(clean_clicks)
-print(clean_conversions)
+mother_df.columns = ["ban_id", "cam_id", "tq", "con_id", "rev_clk"]
 print(mother_df)
 
-insert_into_dynamo(mother_df, dynamodb.Table('banners'))
+# Check for duplicate composite primary keys
+dup_primary_keys = mother_df[mother_df.duplicated(subset=["cam_id", "rev_clk"])]
+print(dup_primary_keys)
+if dup_primary_keys.shape[0] == 0:
+    insert_into_dynamo(mother_df, dynamodb.Table('datachef_banners'))
+else:
+    print("Something went wrong: duplicate composite primary keys were found!")
+
 print("--- %s seconds ---" % (time.time() - start_time))
 
