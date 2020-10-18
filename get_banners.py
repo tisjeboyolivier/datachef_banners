@@ -1,3 +1,4 @@
+import random
 import boto3
 from boto3.dynamodb.conditions import Key
 from boto3.dynamodb.conditions import Attr
@@ -38,14 +39,22 @@ def lambda_handler(event, context):
 
 def determine_banners(with_conv, conv_count, without_conv, without_conv_count):
     if conv_count >= 10:
-        return with_conv[:10]
+        banner_ids = with_conv[:10]
+        random.shuffle(banner_ids)
+        return banner_ids
     elif 5 <= conv_count <= 9:
-        return with_conv[:conv_count]
+        banner_ids = with_conv[:conv_count]
+        random.shuffle(banner_ids)
+        return banner_ids
     elif 4 <= conv_count <= 1:
         needed_for_five = 5 - conv_count
-        return with_conv[:conv_count] + without_conv[:needed_for_five]
+        banner_ids = with_conv[:conv_count] + without_conv[:needed_for_five]
+        random.shuffle(banner_ids)
+        return banner_ids
     elif conv_count == 0:
-        return without_conv[:without_conv_count]
+        banner_ids = without_conv[:without_conv_count]
+        random.shuffle(banner_ids)
+        return banner_ids
     else:
         print("Something went wrong: negative item count")
         return "Error: negative item count"
