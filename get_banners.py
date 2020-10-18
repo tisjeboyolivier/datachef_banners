@@ -17,14 +17,16 @@ def lambda_handler(event, context):
         ScanIndexForward=False
     )
 
-    # Clicks without conversion is equivalent to 0.0 revenue
-    conversion_count = 0
+    # A click without conversion is equivalent to 0.0 revenue
+    with_conv = []
+    without_conv = []
     for item in all_banners["Items"]:
         if not item.get("rev_clk").startswith("0.0_"):
-            conversion_count += 1
-    all_ban_ids = [d.get("ban_id") for d in all_banners["Items"]]
+            with_conv.append(item.get("ban_id"))
+        else:
+            without_conv.append(item.get("ban_id"))
 
-    banner_ids = determine_banners(all_ban_ids, conversion_count)
+    banner_ids = determine_banners(with_conv, len(with_conv), without_conv, len(without_conv))
 
     return {
         "statusCode": 200,
@@ -34,15 +36,16 @@ def lambda_handler(event, context):
     }
 
 
-def determine_banners(items, item_count):
-    if item_count >= 10:
-        return items[:10]
-    elif 5 <= item_count <= 9:
-        return items[:item_count]
-    elif 4 <= item_count <= 1:
-        return items[:item_count]
-    elif item_count == 0:
-        return "0 items with revenue"
+def determine_banners(with_conv, conv_count, without_conv, without_conv_count):
+    if conv_count >= 10:
+        return with_conv[:10]
+    elif 5 <= conv_count <= 9:
+        return with_conv[:conv_count]
+    elif 4 <= conv_count <= 1:
+        needed_for_five = 5 - conv_count
+        return with_conv[:conv_count] + without_conv[:needed_for_five]
+    elif conv_count == 0:
+        return without_conv[:without_conv_count]
     else:
-        print("Something went wrong: negative item count!")
+        print("Something went wrong: negative item count")
         return "Error: negative item count"

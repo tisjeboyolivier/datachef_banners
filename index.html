@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Datachef Banners</title>
+    <script>
+        function callApiGateway() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var campaign_id = Number(urlParams.get("cam-id"));
+            var today = new Date();
+            var minute = today.getMinutes();
+
+            if (minute >= 0 && minute <= 15) {
+                var tq = 1;
+            } else if (minute >= 16 && minute <= 30) {
+                var tq = 2;
+            } else if (minute >= 31 && minute <= 45) {
+                var tq = 3;
+            } else if (minute >= 46 && minute <= 59) {
+                var tq = 4;
+            }
+
+            const xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
+                    var bannerIds = JSON.parse(xhr.responseText)["banner_ids"];
+                    console.log(bannerIds)
+                    for (i=0; i<bannerIds.length; i++) {
+                        console.log("banner_"+String(i))
+                        document.getElementById("banner_"+String(i)).src = "https://datachef-banners.s3.eu-central-1.amazonaws.com/images/image_"+bannerIds[i]+".png"
+                    }
+                }
+            }
+            xhr.open("POST", "https://dupwbyakid.execute-api.eu-central-1.amazonaws.com/datachef_banners/get-banners", true);
+            xhr.send(JSON.stringify({
+                cam_id: campaign_id,
+                tq: tq
+            }));
+        }
+    </script>
+</head>
+<body onload="callApiGateway()">
+    <h1>Datachef Banner Challenge</h1>
+    <img src="" id="banner_0" alt="banner_0">
+    <img src="" id="banner_1" alt="banner_1">
+    <img src="" id="banner_2" alt="banner_2">
+    <img src="" id="banner_3" alt="banner_3">
+    <img src="" id="banner_4" alt="banner_4">
+    <img src="" id="banner_5" alt="banner_5">
+    <img src="" id="banner_6" alt="banner_6">
+    <img src="" id="banner_7" alt="banner_7">
+    <img src="" id="banner_8" alt="banner_8">
+    <img src="" id="banner_9" alt="banner_9">
+</body>
+</html>
