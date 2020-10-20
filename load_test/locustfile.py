@@ -7,4 +7,5 @@ class MyUser(HttpUser):
 
     @task
     def query_api(self):
-        self.client.post("/get-banners", json={"cam_id":7, "tq":random.randint(1,4)})
+        response = self.client.post("/get-banners", json={"cam_id":random.randint(1,50), "tq":random.randint(1,4)})
+        print("Response text:", response.text)
